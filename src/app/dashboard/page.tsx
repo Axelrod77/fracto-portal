@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import AuthGuard from "@/components/auth-guard";
 import { useAuth } from "@/hooks/use-auth";
 import { getSupabase } from "@/lib/supabase";
+import AppHeader from "@/components/app-header";
 
 interface Assessment {
   id: string;
@@ -67,39 +68,9 @@ function DashboardContent() {
     router.push(`/assessment?id=${data.id}`);
   };
 
-  const signOut = async () => {
-    const sb = getSupabase();
-    if (sb) await sb.auth.signOut();
-    router.push("/");
-  };
-
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border/50 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[var(--color-plum)] flex items-center justify-center">
-              <span className="text-white font-bold text-xs">F</span>
-            </div>
-            <span className="text-lg font-semibold tracking-tight text-[var(--color-plum)]">
-              FraCTO
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-[var(--color-muted-foreground)]">
-              {user?.email}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={signOut}
-              className="border-[var(--color-periwinkle)] text-[var(--color-plum)] hover:bg-[var(--color-periwinkle-lighter)]"
-            >
-              Sign Out
-            </Button>
-          </div>
-        </div>
-      </header>
+      <AppHeader />
 
       <div className="max-w-5xl mx-auto px-6 py-12">
         <div className="flex items-center justify-between mb-8">

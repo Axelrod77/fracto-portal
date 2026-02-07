@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import type { ScoreResult } from "@/lib/scoring";
 import { generateRoadmap } from "@/lib/roadmap";
 import { getSupabase } from "@/lib/supabase";
@@ -64,6 +65,7 @@ export default function ReportActions({
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("PDF generation failed:", err);
+      toast.error("PDF generation failed. Please try again.");
     } finally {
       setPdfLoading(false);
     }
@@ -85,6 +87,7 @@ export default function ReportActions({
 
       if (error || !data) {
         console.error("Share failed:", error);
+        toast.error("Could not create share link.");
         return;
       }
 
@@ -94,8 +97,10 @@ export default function ReportActions({
       setShareUrl(url);
 
       await navigator.clipboard.writeText(url);
+      toast.success("Share link copied to clipboard!");
     } catch (err) {
       console.error("Share failed:", err);
+      toast.error("Could not create share link.");
     } finally {
       setShareLoading(false);
     }

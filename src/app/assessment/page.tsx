@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { modules, type Question } from "@/data/questionnaire";
 import { useAuth } from "@/hooks/use-auth";
 import { getStore } from "@/lib/store";
+import { getSupabase } from "@/lib/supabase";
 
 const moduleIcons: Record<string, string> = {
   server: "S",
@@ -37,7 +38,7 @@ function AssessmentPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const assessmentId = searchParams.get("id") ?? undefined;
-  const { authenticated, loading: authLoading } = useAuth();
+  const { authenticated, user, loading: authLoading } = useAuth();
   const store = getStore(authenticated);
 
   const [currentModuleIdx, setCurrentModuleIdx] = useState(0);
@@ -135,6 +136,12 @@ function AssessmentPageInner() {
     }
   };
 
+  const signOut = async () => {
+    const sb = getSupabase();
+    if (sb) await sb.auth.signOut();
+    router.push("/");
+  };
+
   const isLastSection =
     currentModuleIdx === modules.length - 1 &&
     currentSectionIdx === currentModule.sections.length - 1;
@@ -154,9 +161,19 @@ function AssessmentPageInner() {
                 FraCTO
               </span>
             </div>
-            <span className="text-sm text-[var(--color-muted-foreground)]">
-              {Math.round(progressPercent)}% complete
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-[var(--color-muted-foreground)]">
+                {Math.round(progressPercent)}% complete
+              </span>
+              {authenticated && (
+                <button
+                  onClick={signOut}
+                  className="text-xs text-[var(--color-muted-foreground)] hover:text-[var(--color-plum)] transition-colors"
+                >
+                  Sign Out
+                </button>
+              )}
+            </div>
           </div>
           <Progress
             value={progressPercent}
@@ -258,6 +275,97 @@ function AssessmentPageInner() {
   );
 }
 
+function CsvUploadField({
+  questionId,
+  placeholder,
+  answer,
+  onAnswer,
+}: {
+  questionId: string;
+  placeholder?: string;
+  answer: string | string[] | undefined;
+  onAnswer: (id: string, value: string | string[]) => void;
+}) {
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const handleFile = (file: File) => {
+    if (!file.name.endsWith(".csv") && !file.name.endsWith(".json")) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      onAnswer(questionId, text);
+    };
+    reader.readAsText(file);
+  };
+
+  const hasFile = !!fileName || (typeof answer === "string" && answer.length > 0);
+
+  return (
+    <div
+      className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
+        dragging
+          ? "border-[var(--color-periwinkle)] bg-[var(--color-periwinkle-lighter)]/30"
+          : hasFile
+            ? "border-green-300 bg-green-50"
+            : "border-[var(--color-periwinkle-lighter)] hover:border-[var(--color-periwinkle)]"
+      }`}
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (file) handleFile(file);
+      }}
+      onClick={() => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".csv,.json";
+        input.onchange = (e) => {
+          const file = (e.target as HTMLInputElement).files?.[0];
+          if (file) handleFile(file);
+        };
+        input.click();
+      }}
+    >
+      <div className="w-12 h-12 rounded-full bg-[var(--color-periwinkle-lighter)] mx-auto mb-3 flex items-center justify-center">
+        {hasFile ? (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        ) : (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--color-plum)]">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+        )}
+      </div>
+      {hasFile ? (
+        <>
+          <p className="text-sm font-medium text-green-700 mb-1">
+            {fileName ?? "File uploaded"}
+          </p>
+          <p className="text-xs text-[var(--color-muted-foreground)]">
+            Click or drag to replace
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="text-sm font-medium text-[var(--color-plum)] mb-1">
+            Drag and drop your CSV file here
+          </p>
+          <p className="text-xs text-[var(--color-muted-foreground)]">
+            {placeholder}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
 function QuestionCard({
   question,
   index,
@@ -349,29 +457,12 @@ function QuestionCard({
           )}
 
           {question.type === "csv-upload" && (
-            <div className="border-2 border-dashed border-[var(--color-periwinkle-lighter)] rounded-xl p-8 text-center hover:border-[var(--color-periwinkle)] transition-colors cursor-pointer">
-              <div className="w-12 h-12 rounded-full bg-[var(--color-periwinkle-lighter)] mx-auto mb-3 flex items-center justify-center">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-[var(--color-plum)]"
-                >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-              </div>
-              <p className="text-sm font-medium text-[var(--color-plum)] mb-1">
-                Drag and drop your CSV file here
-              </p>
-              <p className="text-xs text-[var(--color-muted-foreground)]">
-                {question.placeholder}
-              </p>
-            </div>
+            <CsvUploadField
+              questionId={question.id}
+              placeholder={question.placeholder}
+              answer={answer}
+              onAnswer={onAnswer}
+            />
           )}
         </div>
       </CardContent>

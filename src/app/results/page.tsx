@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { getStore } from "@/lib/store";
 import { getSupabase } from "@/lib/supabase";
 import ReportActions from "@/components/report-actions";
+import AppHeader from "@/components/app-header";
 import {
   Radar,
   RadarChart,
@@ -158,18 +159,9 @@ function ResultsPageInner() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[var(--color-plum)] flex items-center justify-center">
-              <span className="text-white font-bold text-xs">F</span>
-            </div>
-            <span className="text-lg font-semibold tracking-tight text-[var(--color-plum)]">
-              FraCTO
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
+      <AppHeader
+        actions={
+          <>
             <ReportActions
               results={results}
               assessmentId={assessmentId}
@@ -181,9 +173,9 @@ function ResultsPageInner() {
             >
               Assessment Results
             </Badge>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className="max-w-5xl mx-auto px-6 py-12">
         {/* Overall Score Hero */}

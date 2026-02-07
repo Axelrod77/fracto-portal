@@ -10,6 +10,7 @@ import { parseCMDBData, type CMDBRow } from "@/lib/parsers/cmdb";
 import { parseProcessLogData, type ProcessLogRow } from "@/lib/parsers/process-logs";
 import { useAuth } from "@/hooks/use-auth";
 import { getSupabase } from "@/lib/supabase";
+import AppHeader from "@/components/app-header";
 
 interface UploadState {
   architecture: { data: ArchitectureRow[]; file: File } | null;
@@ -109,25 +110,16 @@ function UploadsPageInner() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[var(--color-plum)] flex items-center justify-center">
-              <span className="text-white font-bold text-xs">F</span>
-            </div>
-            <span className="text-lg font-semibold tracking-tight text-[var(--color-plum)]">
-              FraCTO
-            </span>
-          </div>
+      <AppHeader
+        actions={
           <Badge
             variant="outline"
             className="border-[var(--color-periwinkle)] text-[var(--color-periwinkle)]"
           >
             Enterprise Data Uploads
           </Badge>
-        </div>
-      </header>
+        }
+      />
 
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="mb-8">

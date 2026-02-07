@@ -10,6 +10,7 @@ import { computeScores, type ScoreResult } from "@/lib/scoring";
 import { generateRoadmap, type RoadmapResult, type Initiative } from "@/lib/roadmap";
 import { useAuth } from "@/hooks/use-auth";
 import { getStore } from "@/lib/store";
+import AppHeader from "@/components/app-header";
 
 function getMaturityLevel(score: number) {
   return (
@@ -137,17 +138,8 @@ function RoadmapPageInner() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[var(--color-plum)] flex items-center justify-center">
-              <span className="text-white font-bold text-xs">F</span>
-            </div>
-            <span className="text-lg font-semibold tracking-tight text-[var(--color-plum)]">
-              FraCTO
-            </span>
-          </div>
+      <AppHeader
+        actions={
           <Button
             variant="outline"
             size="sm"
@@ -159,8 +151,8 @@ function RoadmapPageInner() {
           >
             Back to Results
           </Button>
-        </div>
-      </header>
+        }
+      />
 
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Summary */}
@@ -172,7 +164,7 @@ function RoadmapPageInner() {
             Initiatives plotted across three horizons — sorted by urgency. Lowest-scoring dimensions appear first.
           </p>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
             <Card className="border-border/50 bg-white">
               <CardContent className="pt-5 pb-4">
                 <p className="text-xs font-medium text-[var(--color-muted-foreground)] uppercase tracking-wider mb-1">
@@ -247,6 +239,11 @@ function RoadmapPageInner() {
         {/* Gantt Timeline */}
         <Card className="border-border/50 bg-white mb-10 overflow-hidden">
           <CardContent className="p-0">
+            {/* Mobile scroll hint */}
+            <div className="sm:hidden flex items-center gap-1.5 px-4 py-2 bg-[var(--color-periwinkle-lighter)]/30 text-[10px] text-[var(--color-muted-foreground)]">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
+              Scroll horizontally to see full timeline
+            </div>
             <div ref={timelineRef} className="overflow-x-auto">
               <div className="min-w-[900px]">
                 {/* Horizon bands header */}
