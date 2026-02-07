@@ -1,8 +1,25 @@
 import { type Module } from "@/data/questionnaire";
+import {
+  type ArchitectureMetrics,
+  computeArchitectureMetrics,
+  type ArchitectureRow,
+} from "./parsers/architecture";
+import {
+  type CMDBMetrics,
+  computeCMDBMetrics,
+  type CMDBRow,
+} from "./parsers/cmdb";
+import {
+  type ProcessLogMetrics,
+  computeProcessLogMetrics,
+  type ProcessLogRow,
+} from "./parsers/process-logs";
 
 export interface DimensionScore {
   name: string;
   score: number;
+  /** true if this dimension was adjusted by enterprise data */
+  enriched?: boolean;
 }
 
 export interface ScoreResult {
@@ -116,5 +133,122 @@ export function computeScores(
   return {
     overall: Math.round(overall * 10) / 10,
     dimensions,
+  };
+}
+
+// ── Enterprise Data Enrichment ──
+
+export interface EnterpriseData {
+  architecture?: ArchitectureRow[];
+  cmdb?: CMDBRow[];
+  process_logs?: ProcessLogRow[];
+}
+
+/**
+ * Enrich survey-based scores with signals from enterprise data uploads.
+ * Weight: 60% survey, 40% enterprise data.
+ * Each signal maps to a modifier in [-1.0, +1.0].
+ */
+export function enrichScores(
+  baseScores: ScoreResult,
+  enterpriseData: EnterpriseData
+): ScoreResult {
+  const modifiers: Record<string, number[]> = {};
+
+  function addModifier(dim: string, value: number) {
+    if (!modifiers[dim]) modifiers[dim] = [];
+    modifiers[dim].push(Math.max(-1, Math.min(1, value)));
+  }
+
+  // Architecture Data → Software Robustness, Automation Scale
+  if (enterpriseData.architecture && enterpriseData.architecture.length > 0) {
+    const m: ArchitectureMetrics = computeArchitectureMetrics(
+      enterpriseData.architecture
+    );
+
+    // % cloud-hosted: 0% → -1.0, 50% → 0, 100% → +1.0
+    addModifier("Software Robustness", (m.cloudHostedPct - 50) / 50);
+
+    // % API enabled: 0% → -0.5, 100% → +0.5
+    addModifier("Software Robustness", (m.apiEnabledPct - 50) / 100);
+
+    // Average age: <3yr → +0.5, 3-7 → 0, >7 → -0.5
+    const ageMod = m.avgAge <= 3 ? 0.5 : m.avgAge <= 7 ? 0 : -0.5;
+    addModifier("Software Robustness", ageMod);
+
+    // Integration points per component: higher → more automation scale
+    const integPerComp =
+      m.totalComponents > 0 ? m.integrationPoints / m.totalComponents : 0;
+    addModifier("Automation Scale", Math.min(integPerComp / 5, 1) - 0.3);
+  }
+
+  // CMDB Data → Software Robustness, Vendor Ecosystem
+  if (enterpriseData.cmdb && enterpriseData.cmdb.length > 0) {
+    const m: CMDBMetrics = computeCMDBMetrics(enterpriseData.cmdb);
+
+    // Utilization ratio: high → good software robustness signal
+    addModifier("Software Robustness", (m.utilizationRatio - 0.5) * 2);
+
+    // HHI (vendor concentration): high HHI → bad vendor ecosystem
+    // HHI ranges 0-1. >0.25 is concentrated
+    addModifier("Vendor Ecosystem", -(m.vendorConcentrationHHI - 0.15) * 3);
+
+    // SaaS %: higher → modern stack
+    addModifier("Software Robustness", (m.saasPct - 50) / 100);
+
+    // Distinct vendors: more diversity = better vendor ecosystem (diminishing)
+    const vendorDiv = Math.min(m.distinctVendors / 15, 1);
+    addModifier("Vendor Ecosystem", vendorDiv - 0.3);
+  }
+
+  // Process Logs → Process Standardization, Automation Scale
+  if (enterpriseData.process_logs && enterpriseData.process_logs.length > 0) {
+    const m: ProcessLogMetrics = computeProcessLogMetrics(
+      enterpriseData.process_logs
+    );
+
+    // Avg automation rate: 0% → -1.0, 50% → 0, 100% → +1.0
+    addModifier("Automation Scale", (m.avgAutomationRate - 50) / 50);
+
+    // Avg exception rate (inverse): high exceptions → bad process standardization
+    addModifier("Process Standardization", -(m.avgExceptionRate - 10) / 30);
+
+    // Cycle time variance (CoV): lower is better
+    addModifier("Process Standardization", -(m.cycleTimeVariance - 0.5) * 2);
+
+    // % high manual steps (inverse): more manual → lower automation scale
+    addModifier("Automation Scale", -(m.highManualStepsPct - 30) / 70);
+  }
+
+  // Apply modifiers to base scores
+  const SURVEY_WEIGHT = 0.6;
+  const ENTERPRISE_WEIGHT = 0.4;
+
+  const enrichedDimensions = baseScores.dimensions.map((dim) => {
+    const mods = modifiers[dim.name];
+    if (!mods || mods.length === 0) return dim;
+
+    const avgModifier = mods.reduce((s, m) => s + m, 0) / mods.length;
+    const adjusted =
+      dim.score * SURVEY_WEIGHT +
+      (dim.score + avgModifier) * ENTERPRISE_WEIGHT;
+    const clamped = Math.max(1.0, Math.min(5.0, adjusted));
+
+    return {
+      name: dim.name,
+      score: Math.round(clamped * 10) / 10,
+      enriched: true,
+    };
+  });
+
+  const overall =
+    enrichedDimensions.length > 0
+      ? enrichedDimensions.reduce((sum, d) => sum + d.score, 0) /
+        enrichedDimensions.length
+      : 0;
+
+  return {
+    overall: Math.round(overall * 10) / 10,
+    dimensions: enrichedDimensions,
   };
 }

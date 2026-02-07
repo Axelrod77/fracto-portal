@@ -1,13 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { modules, mockResults, maturityLevels } from "@/data/questionnaire";
-import { computeScores, type ScoreResult } from "@/lib/scoring";
+import { computeScores, enrichScores, type ScoreResult, type EnterpriseData } from "@/lib/scoring";
+import { useAuth } from "@/hooks/use-auth";
+import { getStore } from "@/lib/store";
+import { getSupabase } from "@/lib/supabase";
+import ReportActions from "@/components/report-actions";
 import {
   Radar,
   RadarChart,
@@ -25,23 +29,124 @@ function getMaturityLevel(score: number) {
 }
 
 export default function ResultsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><div className="w-8 h-8 rounded-full border-2 border-[var(--color-plum)] border-t-transparent animate-spin" /></div>}>
+      <ResultsPageInner />
+    </Suspense>
+  );
+}
+
+function ResultsPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const assessmentId = searchParams.get("id") ?? undefined;
+  const { authenticated, loading: authLoading } = useAuth();
+  const store = getStore(authenticated);
+
   const [results, setResults] = useState<ScoreResult>(mockResults);
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("fracto-answers");
-      if (stored) {
-        const answers = JSON.parse(stored);
-        const computed = computeScores(answers, modules);
-        if (computed.dimensions.length > 0) {
-          setResults(computed);
+    if (authLoading) return;
+    async function load() {
+      let scoreResult: ScoreResult | null = null;
+
+      // Try loading cached scores first (Supabase)
+      const cached = await store.loadScores(assessmentId);
+      if (cached && cached.dimensions.length > 0) {
+        scoreResult = cached;
+      }
+
+      if (!scoreResult) {
+        // Compute from answers
+        const answers = await store.loadAnswers(assessmentId);
+        if (Object.keys(answers).length > 0) {
+          const computed = computeScores(answers, modules);
+          if (computed.dimensions.length > 0) {
+            scoreResult = computed;
+            store.saveScores(computed, assessmentId);
+          }
         }
       }
-    } catch {
-      // Fall back to mockResults
+
+      if (!scoreResult) {
+        // Fallback: try localStorage directly (anonymous path)
+        try {
+          const stored = localStorage.getItem("fracto-answers");
+          if (stored) {
+            const answers = JSON.parse(stored);
+            const computed = computeScores(answers, modules);
+            if (computed.dimensions.length > 0) {
+              scoreResult = computed;
+            }
+          }
+        } catch {
+          // Fall back to mockResults
+        }
+      }
+
+      if (!scoreResult) {
+        scoreResult = mockResults;
+      }
+
+      // Try to enrich with enterprise data
+      const enterpriseData = await loadEnterpriseData(assessmentId, authenticated);
+      if (enterpriseData) {
+        scoreResult = enrichScores(scoreResult, enterpriseData);
+      }
+
+      setResults(scoreResult);
+      setDataLoading(false);
     }
-  }, []);
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading]);
+
+  async function loadEnterpriseData(
+    aId?: string,
+    authed?: boolean
+  ): Promise<EnterpriseData | null> {
+    // Try Supabase first
+    if (authed && aId) {
+      const sb = getSupabase();
+      if (sb) {
+        const { data } = await sb
+          .from("enterprise_uploads")
+          .select("upload_type, parsed_data")
+          .eq("assessment_id", aId);
+
+        if (data && data.length > 0) {
+          const result: EnterpriseData = {};
+          for (const row of data) {
+            if (row.upload_type === "architecture")
+              result.architecture = row.parsed_data;
+            if (row.upload_type === "cmdb") result.cmdb = row.parsed_data;
+            if (row.upload_type === "process_logs")
+              result.process_logs = row.parsed_data;
+          }
+          return result;
+        }
+      }
+    }
+
+    // Try localStorage
+    try {
+      const stored = localStorage.getItem("fracto-enterprise-data");
+      if (stored) return JSON.parse(stored);
+    } catch {
+      // ignore
+    }
+
+    return null;
+  }
+
+  if (authLoading || dataLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-8 h-8 rounded-full border-2 border-[var(--color-plum)] border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   const overallLevel = getMaturityLevel(results.overall);
 
@@ -64,12 +169,19 @@ export default function ResultsPage() {
               FraCTO
             </span>
           </div>
-          <Badge
-            variant="outline"
-            className="border-[var(--color-periwinkle)] text-[var(--color-periwinkle)]"
-          >
-            Assessment Results
-          </Badge>
+          <div className="flex items-center gap-3">
+            <ReportActions
+              results={results}
+              assessmentId={assessmentId}
+              authenticated={authenticated}
+            />
+            <Badge
+              variant="outline"
+              className="border-[var(--color-periwinkle)] text-[var(--color-periwinkle)]"
+            >
+              Assessment Results
+            </Badge>
+          </div>
         </div>
       </header>
 
@@ -107,7 +219,7 @@ export default function ResultsPage() {
             <h3 className="text-lg font-semibold text-[var(--color-plum)] text-center mb-6">
               Maturity Radar
             </h3>
-            <div className="w-full h-[420px]">
+            <div id="radar-chart" className="w-full h-[420px]">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
                   <PolarGrid
@@ -165,9 +277,16 @@ export default function ResultsPage() {
               >
                 <CardContent className="pt-5 pb-4">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium text-[var(--color-plum)]">
-                      {dim.name}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-medium text-[var(--color-plum)]">
+                        {dim.name}
+                      </span>
+                      {dim.enriched && (
+                        <Badge className="bg-[var(--color-periwinkle)] text-white text-[8px] px-1 py-0 leading-tight">
+                          Enriched
+                        </Badge>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
                       <Badge
                         variant="outline"
@@ -264,7 +383,10 @@ export default function ResultsPage() {
             <Button
               size="lg"
               className="bg-[var(--color-plum)] hover:bg-[var(--color-plum-light)] text-white px-8"
-              onClick={() => router.push("/roadmap")}
+              onClick={() => {
+                const query = assessmentId ? `?id=${assessmentId}` : "";
+                router.push(`/roadmap${query}`);
+              }}
             >
               View Roadmap
             </Button>

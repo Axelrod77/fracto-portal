@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useCallback, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -10,7 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { modules, type Module, type Question } from "@/data/questionnaire";
+import { modules, type Question } from "@/data/questionnaire";
+import { useAuth } from "@/hooks/use-auth";
+import { getStore } from "@/lib/store";
 
 const moduleIcons: Record<string, string> = {
   server: "S",
@@ -24,10 +26,50 @@ const moduleIcons: Record<string, string> = {
 };
 
 export default function AssessmentPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><div className="w-8 h-8 rounded-full border-2 border-[var(--color-plum)] border-t-transparent animate-spin" /></div>}>
+      <AssessmentPageInner />
+    </Suspense>
+  );
+}
+
+function AssessmentPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const assessmentId = searchParams.get("id") ?? undefined;
+  const { authenticated, loading: authLoading } = useAuth();
+  const store = getStore(authenticated);
+
   const [currentModuleIdx, setCurrentModuleIdx] = useState(0);
   const [currentSectionIdx, setCurrentSectionIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
+  const [loaded, setLoaded] = useState(false);
+
+  // Debounced save
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load existing answers once auth resolves
+  useEffect(() => {
+    if (authLoading) return;
+    store.loadAnswers(assessmentId).then((a) => {
+      if (Object.keys(a).length > 0) setAnswers(a);
+      setLoaded(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading]);
+
+  // Save answers debounced
+  useEffect(() => {
+    if (!loaded) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      store.saveAnswers(answers, assessmentId);
+    }, 1000);
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, loaded]);
 
   const currentModule = modules[currentModuleIdx];
   const currentSection = currentModule?.sections[currentSectionIdx];
@@ -71,8 +113,13 @@ export default function AssessmentPage() {
       setCurrentSectionIdx(0);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
-      localStorage.setItem("fracto-answers", JSON.stringify(answers));
-      router.push("/results");
+      // Final save (flush immediately)
+      store.saveAnswers(answers, assessmentId);
+      if (!authenticated) {
+        localStorage.setItem("fracto-answers", JSON.stringify(answers));
+      }
+      const query = assessmentId ? `?id=${assessmentId}` : "";
+      router.push(`/results${query}`);
     }
   };
 
