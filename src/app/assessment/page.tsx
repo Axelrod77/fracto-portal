@@ -71,6 +71,7 @@ export default function AssessmentPage() {
       setCurrentSectionIdx(0);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
+      localStorage.setItem("fracto-answers", JSON.stringify(answers));
       router.push("/results");
     }
   };

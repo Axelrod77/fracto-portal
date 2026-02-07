@@ -1,11 +1,13 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { mockResults, maturityLevels } from "@/data/questionnaire";
+import { modules, mockResults, maturityLevels } from "@/data/questionnaire";
+import { computeScores, type ScoreResult } from "@/lib/scoring";
 import {
   Radar,
   RadarChart,
@@ -24,9 +26,26 @@ function getMaturityLevel(score: number) {
 
 export default function ResultsPage() {
   const router = useRouter();
-  const overallLevel = getMaturityLevel(mockResults.overall);
+  const [results, setResults] = useState<ScoreResult>(mockResults);
 
-  const radarData = mockResults.dimensions.map((d) => ({
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("fracto-answers");
+      if (stored) {
+        const answers = JSON.parse(stored);
+        const computed = computeScores(answers, modules);
+        if (computed.dimensions.length > 0) {
+          setResults(computed);
+        }
+      }
+    } catch {
+      // Fall back to mockResults
+    }
+  }, []);
+
+  const overallLevel = getMaturityLevel(results.overall);
+
+  const radarData = results.dimensions.map((d) => ({
     dimension: d.name.replace("& ", "&\n"),
     score: d.score,
     fullMark: 5,
@@ -49,7 +68,7 @@ export default function ResultsPage() {
             variant="outline"
             className="border-[var(--color-periwinkle)] text-[var(--color-periwinkle)]"
           >
-            Sample Results
+            Assessment Results
           </Badge>
         </div>
       </header>
@@ -62,7 +81,7 @@ export default function ResultsPage() {
           </p>
           <div className="inline-flex items-baseline gap-2 mb-3">
             <span className="text-7xl font-bold text-[var(--color-plum)]">
-              {mockResults.overall.toFixed(1)}
+              {results.overall.toFixed(1)}
             </span>
             <span className="text-2xl text-[var(--color-muted-foreground)]">
               / 5.0
@@ -136,7 +155,7 @@ export default function ResultsPage() {
           Dimension Breakdown
         </h3>
         <div className="grid sm:grid-cols-2 gap-4 mb-12">
-          {mockResults.dimensions.map((dim) => {
+          {results.dimensions.map((dim) => {
             const level = getMaturityLevel(dim.score);
             const pct = (dim.score / 5) * 100;
             return (
@@ -245,8 +264,9 @@ export default function ResultsPage() {
             <Button
               size="lg"
               className="bg-[var(--color-plum)] hover:bg-[var(--color-plum-light)] text-white px-8"
+              onClick={() => router.push("/roadmap")}
             >
-              Request Roadmap
+              View Roadmap
             </Button>
             <Button
               size="lg"
