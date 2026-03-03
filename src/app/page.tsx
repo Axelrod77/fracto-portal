@@ -59,10 +59,10 @@ export default function Home() {
             </span>
           </div>
           <Button
-            onClick={() => router.push("/assessment")}
+            onClick={() => router.push("/quick-scan")}
             className="bg-[var(--color-plum)] hover:bg-[var(--color-plum-light)] text-white"
           >
-            Start Assessment
+            Quick Scan
           </Button>
         </div>
       </header>
@@ -85,27 +85,27 @@ export default function Home() {
             maturity — from infrastructure and data to culture and AI readiness
             — so you can invest with clarity, not guesswork.
           </p>
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               size="lg"
-              onClick={() => router.push("/assessment")}
+              onClick={() => router.push("/quick-scan")}
               className="bg-[var(--color-plum)] hover:bg-[var(--color-plum-light)] text-white px-8 py-6 text-base"
             >
-              Begin Assessment
+              Quick Scan (5 min)
             </Button>
             <Button
               size="lg"
               variant="outline"
-              onClick={() => {
-                document
-                  .getElementById("dimensions")
-                  ?.scrollIntoView({ behavior: "smooth" });
-              }}
+              onClick={() => router.push("/assessment")}
               className="border-[var(--color-periwinkle)] text-[var(--color-plum)] hover:bg-[var(--color-periwinkle-lighter)] px-8 py-6 text-base"
             >
-              Learn More
+              Full Assessment
             </Button>
           </div>
+          <p className="text-sm text-[var(--color-muted-foreground)] mt-4">
+            Quick Scan: 10 questions, instant score, no sign-up.
+            Full Assessment: 70+ questions across your functional leads.
+          </p>
         </div>
       </section>
 
@@ -251,16 +251,26 @@ export default function Home() {
             Ready to assess your digital maturity?
           </h2>
           <p className="text-[var(--color-muted-foreground)] mb-8">
-            The assessment is free, transparent, and takes ~15 minutes per
-            stakeholder. No sales pitch — just clarity.
+            Start with a 5-minute Quick Scan for an instant score, or take the
+            full assessment for a deep dive. No sales pitch — just clarity.
           </p>
-          <Button
-            size="lg"
-            onClick={() => router.push("/assessment")}
-            className="bg-[var(--color-plum)] hover:bg-[var(--color-plum-light)] text-white px-8 py-6 text-base"
-          >
-            Start Your Assessment
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              size="lg"
+              onClick={() => router.push("/quick-scan")}
+              className="bg-[var(--color-plum)] hover:bg-[var(--color-plum-light)] text-white px-8 py-6 text-base"
+            >
+              Quick Scan (5 min)
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => router.push("/assessment")}
+              className="border-[var(--color-periwinkle)] text-[var(--color-plum)] hover:bg-[var(--color-periwinkle-lighter)] px-8 py-6 text-base"
+            >
+              Full Assessment
+            </Button>
+          </div>
         </div>
       </section>
 

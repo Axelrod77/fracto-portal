@@ -1255,6 +1255,291 @@ export const modules: Module[] = [
   },
 ];
 
+// ─── Quick Scan: 10 high-signal questions for 5-minute CIO assessment ───
+// Each mini-module feeds into exactly one dimension. Compatible with computeScores().
+export const quickScanModules: Module[] = [
+  {
+    id: "qs-sr",
+    title: "Technology Modernization",
+    shortTitle: "Tech",
+    sentTo: "",
+    feedsInto: ["Software Robustness"],
+    icon: "server",
+    sections: [
+      {
+        id: "qs-sr-s",
+        title: "Quick Scan",
+        questions: [
+          {
+            id: "qs1",
+            text: "How would you describe the age and modernization state of your core business applications (ERP, CRM, HRMS)?",
+            type: "mcq",
+            options: [
+              { label: "Most are 10+ years old with minimal updates", score: 1 },
+              { label: "Most are 5-10 years old with periodic upgrades", score: 2 },
+              { label: "A mix of legacy and modern systems", score: 3 },
+              { label: "Most modernized or replaced in the last 5 years", score: 4 },
+              { label: "Current-generation, cloud-native platforms", score: 5 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "qs-dr",
+    title: "Data Accessibility",
+    shortTitle: "Data",
+    sentTo: "",
+    feedsInto: ["Data Readiness"],
+    icon: "database",
+    sections: [
+      {
+        id: "qs-dr-s",
+        title: "Quick Scan",
+        questions: [
+          {
+            id: "qs2",
+            text: "How accessible is data for analytical or reporting purposes across your organization?",
+            type: "mcq",
+            options: [
+              { label: "Requires IT requests and custom queries — weeks of lead time", score: 1 },
+              { label: "Some self-service via BI tools, but coverage is limited", score: 2 },
+              { label: "Central data warehouse/lake exists, accessible to analyst teams", score: 3 },
+              { label: "Self-service analytics widely available with governed datasets", score: 4 },
+              { label: "Data marketplace with self-service access, lineage, and discovery", score: 5 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "qs-ps",
+    title: "Process Documentation",
+    shortTitle: "Process",
+    sentTo: "",
+    feedsInto: ["Process Standardization"],
+    icon: "workflow",
+    sections: [
+      {
+        id: "qs-ps-s",
+        title: "Quick Scan",
+        questions: [
+          {
+            id: "qs3",
+            text: "What percentage of your core business processes are formally documented and standardized?",
+            type: "mcq",
+            options: [
+              { label: "Less than 10%", score: 1 },
+              { label: "10-30%", score: 2 },
+              { label: "31-50%", score: 3 },
+              { label: "51-75%", score: 4 },
+              { label: "Over 75%", score: 5 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "qs-as",
+    title: "Automation Scale",
+    shortTitle: "Automation",
+    sentTo: "",
+    feedsInto: ["Automation Scale"],
+    icon: "workflow",
+    sections: [
+      {
+        id: "qs-as-s",
+        title: "Quick Scan",
+        questions: [
+          {
+            id: "qs4",
+            text: "What is the current scale of automation (RPA, workflow automation, scripting) in your organization?",
+            type: "mcq",
+            options: [
+              { label: "No formal automation — processes are manual", score: 1 },
+              { label: "Pilot stage — a few bots or automations in limited areas", score: 2 },
+              { label: "Departmental adoption — 10-50 automations in production", score: 3 },
+              { label: "Scaled program — 50-200+ automations with a CoE", score: 4 },
+              { label: "Enterprise-wide — automation is standard practice", score: 5 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "qs-dc1",
+    title: "Leadership Alignment",
+    shortTitle: "Leadership",
+    sentTo: "",
+    feedsInto: ["Digital Culture"],
+    icon: "users",
+    sections: [
+      {
+        id: "qs-dc1-s",
+        title: "Quick Scan",
+        questions: [
+          {
+            id: "qs5",
+            text: "How aligned is your leadership team on the role of AI and automation in the company's future?",
+            type: "mcq",
+            options: [
+              { label: "Significant disagreement or lack of interest", score: 1 },
+              { label: "Some leaders enthusiastic, others skeptical or indifferent", score: 2 },
+              { label: "General agreement on the need, but no alignment on approach", score: 3 },
+              { label: "Aligned on vision and priorities with active executive sponsorship", score: 4 },
+              { label: "Unified vision with leaders actively championing digital adoption", score: 5 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "qs-dc2",
+    title: "Change Readiness",
+    shortTitle: "Change",
+    sentTo: "",
+    feedsInto: ["Digital Culture"],
+    icon: "users",
+    sections: [
+      {
+        id: "qs-dc2-s",
+        title: "Quick Scan",
+        questions: [
+          {
+            id: "qs6",
+            text: "How does your organization typically respond to new technology or process changes?",
+            type: "mcq",
+            options: [
+              { label: "Strong resistance — changes are slow and often rolled back", score: 1 },
+              { label: "Cautious — long pilot phases, heavy governance before adoption", score: 2 },
+              { label: "Mixed — some teams adopt quickly, others resist", score: 3 },
+              { label: "Generally positive — structured change management enables adoption", score: 4 },
+              { label: "Eagerly — culture of experimentation with fast adoption cycles", score: 5 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "qs-sc",
+    title: "AI Regulation Readiness",
+    shortTitle: "Compliance",
+    sentTo: "",
+    feedsInto: ["Security & Compliance"],
+    icon: "shield",
+    sections: [
+      {
+        id: "qs-sc-s",
+        title: "Quick Scan",
+        questions: [
+          {
+            id: "qs7",
+            text: "How prepared is your organization for AI-related regulations (EU AI Act, DPDP Act, etc.)?",
+            type: "mcq",
+            options: [
+              { label: "Not aware of upcoming regulations", score: 1 },
+              { label: "Aware but haven't started preparing", score: 2 },
+              { label: "Initial assessment underway", score: 3 },
+              { label: "Active compliance program for key regulations", score: 4 },
+              { label: "Regulatory-ready with proactive monitoring of evolving AI legislation", score: 5 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "qs-ve",
+    title: "Partner Contracts",
+    shortTitle: "Vendors",
+    sentTo: "",
+    feedsInto: ["Vendor Ecosystem"],
+    icon: "handshake",
+    sections: [
+      {
+        id: "qs-ve-s",
+        title: "Quick Scan",
+        questions: [
+          {
+            id: "qs8",
+            text: "Are your IT partner contracts structured to incentivize automation and efficiency?",
+            type: "mcq",
+            options: [
+              { label: "No — contracts are headcount/FTE-based", score: 1 },
+              { label: "Mostly headcount-based with some project-based components", score: 2 },
+              { label: "Mix of FTE and outcome-based pricing", score: 3 },
+              { label: "Primarily outcome-based or managed services pricing", score: 4 },
+              { label: "Gain-sharing or innovation-incentive models", score: 5 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "qs-ai1",
+    title: "AI Journey",
+    shortTitle: "AI Journey",
+    sentTo: "",
+    feedsInto: ["AI/ML Current State"],
+    icon: "brain",
+    sections: [
+      {
+        id: "qs-ai1-s",
+        title: "Quick Scan",
+        questions: [
+          {
+            id: "qs9",
+            text: "Where is your organization on the AI journey?",
+            type: "mcq",
+            options: [
+              { label: "Not started — no AI initiatives or exploration", score: 1 },
+              { label: "Exploring — learning and attending conferences, but no projects", score: 2 },
+              { label: "Experimenting — 1-3 POCs or pilots in progress", score: 3 },
+              { label: "Deploying — some AI use cases in production delivering value", score: 4 },
+              { label: "Scaling — AI embedded in multiple processes systematically", score: 5 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "qs-ai2",
+    title: "AI Tool Adoption",
+    shortTitle: "AI Tools",
+    sentTo: "",
+    feedsInto: ["AI/ML Current State"],
+    icon: "brain",
+    sections: [
+      {
+        id: "qs-ai2-s",
+        title: "Quick Scan",
+        questions: [
+          {
+            id: "qs10",
+            text: "How are AI tools (including GenAI like ChatGPT, Copilot) being used by employees?",
+            type: "mcq",
+            options: [
+              { label: "Blocked or not available", score: 1 },
+              { label: "Unofficial/shadow use — employees use personal accounts", score: 2 },
+              { label: "Approved for limited use with guidelines", score: 3 },
+              { label: "Organization-wide deployment with governance", score: 4 },
+              { label: "Deeply integrated into workflows with customization", score: 5 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+];
+
 export const maturityLevels = [
   { level: 1, min: 1.0, max: 1.8, label: "Foundational", description: "Minimal digital capabilities. Manual processes, no strategy.", color: "#e74c3c" },
   { level: 2, min: 1.9, max: 2.6, label: "Emerging", description: "Some awareness and pockets of effort. Inconsistent, fragmented.", color: "#e67e22" },
